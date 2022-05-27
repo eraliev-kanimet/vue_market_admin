@@ -14,6 +14,7 @@ export default createStore({
     mutations: {
         setErrors(state, errors) {
             if (typeof errors === 'string') {
+                state.errors.errors = [];
                 state.errors.errors.push(errors);
             } else {
                 state.errors.errors = Object.keys(errors).map(key => errors[key][0]);

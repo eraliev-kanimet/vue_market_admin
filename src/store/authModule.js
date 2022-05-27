@@ -18,15 +18,20 @@ export const authModule = {
     actions: {
         submit({state}, event) {
             event.preventDefault();
-            post('oauth/login', state.data).then(response => {
-                if (Object.keys(response).includes('admin')) {
-                    localStorage.setItem('token', response.token);
-                    localStorage.setItem('admin_key', response.admin);
+            post('oauth/login', state.data)
+                .then(response => {
+                if (response.data.admin) {
+                    localStorage.setItem('token', response.data.token);
+                    localStorage.setItem('admin_key', response.data.admin);
                     window.location.href = "/admin";
-                } else if (Object.keys(response).includes('token')) {
+                } else {
                     this.commit('setErrors', 'У вас нет доступа');
-                } else if (Object.keys(response).includes('errors')) {
-                    this.commit('setErrors', response.errors);
+                }
+            }).catch(error => {
+                if (error.response.status === 422) {
+                    this.commit('setErrors', error.response.data.errors);
+                } else if (error.response.status === 401) {
+                    this.commit('setErrors', 'У вас нет доступа');
                 } else {
                     this.commit('setErrors', 'Введите данные правильно!');
                 }

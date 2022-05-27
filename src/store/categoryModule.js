@@ -1,4 +1,4 @@
-import {get, postFormData, putFormData, remove} from "@/utils/request";
+import {get, post, put, remove} from "@/utils/request";
 
 export const categoryModule = {
     state: () => ({
@@ -44,15 +44,17 @@ export const categoryModule = {
     }),
     getters: {
         getSelectCategoriesList(state) {
-            if (state._update.category_id) {
-                return state.select_categories.filter(function (object) {
-                    return object.id !== state._update.id;
-                });
+            if (state.categories.length) {
+                if (state._update.category_id) {
+                    return state.select_categories.filter(object => object.id !== state._update.id);
+                } else {
+                    return state.select_categories.filter(function (object) {
+                        if (object.id === state._update.id) return false;
+                        if (object.category_id === null) return true;
+                    });
+                }
             } else {
-                return state.select_categories.filter(function (object) {
-                    if (object.id === state._update.id) return false;
-                    if (object.category_id === null) return true;
-                });
+                return [];
             }
         },
         getPictureRemove(state) {
@@ -156,9 +158,9 @@ export const categoryModule = {
                 if (state.current.id) url = 'admin/categories/' + state.current.id;
             }
             get(url, this.state.token).then(response => {
-                commit('setCategories', response.data);
+                commit('setCategories', response.data.data);
                 if (state.current.id) {
-                    commit('setCurrent', response.category);
+                    commit('setCurrent', response.data.category);
                 } else {
                     commit('setCurrent', {id: 0, title: '', category_id: 0, category_title: '', picture: null});
                 }
@@ -166,7 +168,7 @@ export const categoryModule = {
             commit('setIsLoading', false);
         },
         getSelectCategories({commit}) {
-            get('admin/categories/all', this.state.token).then(response => commit('setSelectCategories', response.data));
+            get('admin/categories/all', this.state.token).then(response => commit('setSelectCategories', response.data.data));
         },
         replaceCurrent({commit, dispatch}, category) {
             commit('setCurrent', category);
@@ -223,12 +225,11 @@ export const categoryModule = {
             if (state.select.category_id) data.append('category_id', state.select.category_id);
             if (state._new.picture) data.append('picture', state._new.picture);
             data.append('title', state._new.title);
-            postFormData('admin/categories', data, this.state.token).then(response => {
-                if (Object.keys(response).includes('errors')) {
-                    this.commit('setErrors', response.errors);
-                }
+            post('admin/categories', data, this.state.token).then(response => {
                 dispatch('modalCreateInactive');
                 dispatch('getCategoriesOrSubcategories');
+            }).catch(error => {
+                if (error.response.status === 422) this.commit('setErrors', error.response.data.errors);
             });
         },
         updateCategory({state, dispatch}) {
@@ -237,24 +238,25 @@ export const categoryModule = {
             data.append('category_id', state.select.category_id ? state.select.category_id : '');
             if (state._update.picture_file) data.append('picture', state._update.picture_file);
             if (!state._update.picture && !state._update.picture_file) data.append('picture_remove', 'remove');
-            putFormData('admin/categories/' + state._update.id, data, this.state.token).then(response => {
-                if (Object.keys(response).includes('errors')) {
-                    this.commit('setErrors', response.errors);
-                }
-                if (response.status === 404) {
+            put('admin/categories/' + state._update.id, data, this.state.token).then(response => {
+                dispatch('getCategoriesOrSubcategories');
+                dispatch('modalUpdateInactive');
+            }).catch(error => {
+                if (error.response.status === 404) {
                     this.commit('setErrors', 404);
                 } else {
-                    dispatch('getCategoriesOrSubcategories');
+                    this.commit('setErrors', error.response.data.errors);
                 }
-                dispatch('modalUpdateInactive');
             });
         },
         deleteCategory({state, commit, dispatch}) {
             remove('admin/categories/' + state._delete.id, this.state.token).then(response => {
-                if (response.status === 204) {
-                    if (state._delete.id === state.current.id) commit('setCurrent', {id: 0, title: '', category_id: 0, category_title: '', picture: null});
-                    dispatch('getCategoriesOrSubcategories');
-                    commit('setModalDeleteActive', false);
+                if (state._delete.id === state.current.id) commit('setCurrent', {id: 0, title: '', category_id: 0, category_title: '', picture: null});
+                dispatch('getCategoriesOrSubcategories');
+                commit('setModalDeleteActive', false);
+            }).catch(error => {
+                if (error.response.status === 401) {
+                    this.commit('setErrors', 'Не авторизован!!!');
                 } else {
                     this.commit('setErrors', 404);
                 }
