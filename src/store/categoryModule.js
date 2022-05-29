@@ -86,8 +86,6 @@ export const categoryModule = {
         },
         setNewPicture(state, event) {
             state._new.picture = event.target.files[0];
-            event.target.type = 'text';
-            event.target.type = 'file';
         },
         setNewPictureRemove(state) {
             state._new.picture = null;

@@ -18,8 +18,7 @@ export const authModule = {
     actions: {
         submit({state}, event) {
             event.preventDefault();
-            post('oauth/login', state.data)
-                .then(response => {
+            post('oauth/login', state.data).then(response => {
                 if (response.data.admin) {
                     localStorage.setItem('token', response.data.token);
                     localStorage.setItem('admin_key', response.data.admin);
