@@ -2,6 +2,7 @@ import {createStore} from "vuex";
 import {isAuth} from "@/utils/resourse";
 import {authModule} from "@/store/authModule";
 import {categoryModule} from "@/store/categoryModule";
+import {productModule} from "@/store/productModule";
 
 export default createStore({
     state: () => ({
@@ -26,6 +27,7 @@ export default createStore({
     modules: {
         auth: authModule,
         categories: categoryModule,
+        products: productModule
     },
     namespaced: true
 });
